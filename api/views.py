@@ -8,6 +8,7 @@ from . import serializers
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.pagination import PageNumberPagination
 from drf_yasg import openapi
+from django.db.models import Q
 
 # Create your views here.
 
@@ -16,6 +17,8 @@ from drf_yasg import openapi
     manual_parameters=[
         openapi.Parameter('page_size', openapi.IN_QUERY, type=openapi.TYPE_NUMBER),
         openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_NUMBER),
+        openapi.Parameter('nome', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+        openapi.Parameter('categoria', openapi.IN_QUERY, type=openapi.TYPE_STRING),
     ],
     tags=['Produtos'],
 )
@@ -23,7 +26,23 @@ from drf_yasg import openapi
 def getProdutos(request):
     paginator = PageNumberPagination()
     paginator.page_size = request.query_params.get('page_size', 5)
+
+    # Obtém os filtros dos parâmetros da consulta
+    name_filter = request.query_params.get('nome', None)
+    category_filter = request.query_params.get('categoria', None)
+
+    # Monta a consulta
     produtos = Produto.objects.all()
+    conditions = Q()
+
+    if name_filter:
+        conditions |= Q(nome__icontains=name_filter)
+
+    if category_filter:
+        conditions |= Q(categoria__icontains=category_filter)
+
+    produtos = produtos.filter(conditions)
+
     paginated_produtos = paginator.paginate_queryset(produtos, request)
     serializer = serializers.ProdutoSerializer(paginated_produtos, many=True)
     return paginator.get_paginated_response(serializer.data)
