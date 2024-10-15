@@ -1,5 +1,6 @@
 from typing import List
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework import status
@@ -85,4 +86,17 @@ def getProdutosId(request, id):
         produto.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
- 
+
+@swagger_auto_schema(
+    methods=['POST'],
+    request_body=serializers.UserSerializer,
+    tags=['token'],
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register(request):
+    serializer = serializers.UserSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'username': serializer.data['username']}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
